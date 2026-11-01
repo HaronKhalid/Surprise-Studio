@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SurpriseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
+}
+
+enum Visibility {
+  PRIVATE
+  UNLISTED
+}
+
+enum AssetType {
+  IMAGE
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  displayName   String?
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  surprises     Surprise[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Template {
+  id            String     @id @default(uuid())
+  name          String
+  slug          String
+  occasion      String
+  version       Int
+  configuration Json
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  surprises     Surprise[]
+
+  @@unique([slug, version])
+}
+
+model Surprise {
+  id                String         @id @default(uuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occasion          String         @default("birthday")
+  templateId        String?
+  template          Template?      @relation(fields: [templateId], references: [id])
+  recipientName     String
+  recipientNickname String?
+  relationship      String?
+  message           String?
+  content           Json           @default("{}")
+  theme             Json           @default("{}")
+  slug              String?        @unique
+  status            SurpriseStatus @default(DRAFT)
+  visibility        Visibility     @default(UNLISTED)
+  publishedAt       DateTime?
+  // Snapshot served publicly; edits to the draft never change it until republish.
+  publishedSnapshot Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  assets            Asset[]
+  events            Event[]
+
+  @@index([userId, status])
+}
+
+model Asset {
+  id         String    @id @default(uuid())
+  surpriseId String
+  surprise   Surprise  @relation(fields: [surpriseId], references: [id], onDelete: Cascade)
+  storageKey String    @unique
+  type       AssetType @default(IMAGE)
+  mimeType   String
+  width      Int?
+  height     Int?
+  size       Int
+  sortOrder  Int       @default(0)
+  confirmed  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([surpriseId, sortOrder])
+}
+
+model Event {
+  id         String    @id @default(uuid())
+  surpriseId String?
+  surprise   Surprise? @relation(fields: [surpriseId], references: [id], onDelete: SetNull)
+  eventType  String
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([eventType, createdAt])
+}

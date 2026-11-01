@@ -1,0 +1,17 @@
+{
+  "id": "cinematic-v1",
+  "name": "Cinematic",
+  "slug": "cinematic",
+  "occasion": "birthday",
+  "version": 1,
+  "theme": {
+    "colors": { "background": "#0B1020", "surface": "#151B2E", "text": "#FFFFFF", "accent": "#D4AF37" }
+  },
+  "sections": [
+    { "type": "hero", "required": true },
+    { "type": "photo_gallery", "required": true },
+    { "type": "memory_cards", "required": false },
+    { "type": "message", "required": true },
+    { "type": "final_reveal", "required": true }
+  ]
+}

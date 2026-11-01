@@ -1,0 +1,13 @@
+﻿{
+  "name": "surprise-studio",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Personalized digital surprise platform",
+  "scripts": {
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "api": "npm --prefix apps/api run",
+    "web": "npm --prefix apps/web run"
+  },
+  "engines": { "node": ">=20" }
+}
