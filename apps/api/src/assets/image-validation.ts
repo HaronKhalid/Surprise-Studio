@@ -18,6 +18,23 @@ export function detectMime(buf: Buffer): AllowedMime | null {
   return null;
 }
 
+interface SizeMetadata {
+  width?: number;
+  height?: number;
+  autoOrient?: { width: number; height: number };
+}
+
+/**
+ * The size the photo is actually displayed at. sharp's metadata() reports the stored pixel size and
+ * ignores EXIF orientation, but our variants are generated after rotate(), so a portrait phone photo
+ * (stored landscape + "rotate 90") must be recorded as portrait or the page reserves the wrong shape.
+ */
+export function displayedSize(meta: SizeMetadata): { width: number; height: number } | null {
+  const width = meta.autoOrient?.width ?? meta.width;
+  const height = meta.autoOrient?.height ?? meta.height;
+  return width && height ? { width, height } : null;
+}
+
 export const VARIANTS = [
   { name: 'thumb', width: 320 },
   { name: 'medium', width: 960 },

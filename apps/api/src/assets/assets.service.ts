@@ -12,6 +12,7 @@ import {
   MIN_DIMENSION,
   VARIANTS,
   detectMime,
+  displayedSize,
 } from './image-validation';
 
 const UPLOAD_URL_TTL_SECONDS = 300;
@@ -81,10 +82,11 @@ export class AssetsService {
       const meta = await sharp(buf).metadata().catch(() => {
         throw this.invalid('INVALID_IMAGE', 'The file is not a readable image');
       });
-      const { width, height } = meta;
-      if (!width || !height || Math.min(width, height) < MIN_DIMENSION || Math.max(width, height) > MAX_DIMENSION) {
+      const size = displayedSize(meta);
+      if (!size || Math.min(size.width, size.height) < MIN_DIMENSION || Math.max(size.width, size.height) > MAX_DIMENSION) {
         throw this.invalid('INVALID_DIMENSIONS', `Image sides must be between ${MIN_DIMENSION} and ${MAX_DIMENSION}px`);
       }
+      const { width, height } = size;
 
       // rotate() applies EXIF orientation; re-encoding drops EXIF (including GPS location).
       for (const v of VARIANTS) {
