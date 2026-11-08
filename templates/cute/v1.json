@@ -1,0 +1,29 @@
+{
+  "slug": "cute",
+  "version": 1,
+  "name": "Cute",
+  "occasion": "birthday",
+  "configuration": {
+    "schemaVersion": 1,
+    "displayOrder": 2,
+    "description": "Bright, playful and friendly. Confetti, giggles and good vibes.",
+    "sections": [
+      { "type": "hero", "required": true, "props": { "eyebrow": "Surprise! 🎉" } },
+      { "type": "photo_gallery", "required": true, "props": { "layout": "grid" } },
+      { "type": "memory_cards", "required": false, "props": { "heading": "Little notes for you" } },
+      { "type": "message", "required": true, "props": { "heading": "Something from the heart" } },
+      { "type": "confetti", "required": false },
+      { "type": "final_wish", "required": true, "props": { "text": "Happy Birthday, {name}! 🎂" } },
+      { "type": "footer", "required": true }
+    ],
+    "theme": {
+      "colors": { "background": "#FFF4F8", "surface": "#FFFFFF", "text": "#3B2A3F", "accent": "#E63D7A" },
+      "font": "poppins"
+    },
+    "customizable": {
+      "colors": ["accent"],
+      "fonts": ["poppins", "inter", "dm-serif"]
+    },
+    "limits": { "minPhotos": 1, "maxMemories": 8 }
+  }
+}

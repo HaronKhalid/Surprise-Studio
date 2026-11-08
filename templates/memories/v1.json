@@ -1,0 +1,28 @@
+{
+  "slug": "memories",
+  "version": 1,
+  "name": "Memories",
+  "occasion": "birthday",
+  "configuration": {
+    "schemaVersion": 1,
+    "displayOrder": 3,
+    "description": "Warm, nostalgic and photo-led. Your story together, told in order.",
+    "sections": [
+      { "type": "hero", "required": true, "props": { "eyebrow": "Our story" } },
+      { "type": "photo_gallery", "required": true, "props": { "layout": "timeline" } },
+      { "type": "memory_cards", "required": true, "props": { "heading": "Remember when…" } },
+      { "type": "message", "required": true, "props": { "heading": "What I want you to know" } },
+      { "type": "final_wish", "required": true, "props": { "text": "Happy Birthday, {name}" } },
+      { "type": "footer", "required": true }
+    ],
+    "theme": {
+      "colors": { "background": "#F6EFE6", "surface": "#FFFDF8", "text": "#3A2E26", "accent": "#A4531A" },
+      "font": "dm-serif"
+    },
+    "customizable": {
+      "colors": ["accent"],
+      "fonts": ["dm-serif", "playfair", "cormorant", "inter"]
+    },
+    "limits": { "minPhotos": 2, "maxMemories": 6 }
+  }
+}

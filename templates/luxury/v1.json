@@ -1,0 +1,27 @@
+{
+  "slug": "luxury",
+  "version": 1,
+  "name": "Luxury",
+  "occasion": "birthday",
+  "configuration": {
+    "schemaVersion": 1,
+    "displayOrder": 4,
+    "description": "Minimal, premium and typography-first. Quiet confidence.",
+    "sections": [
+      { "type": "hero", "required": true, "props": { "eyebrow": "For you" } },
+      { "type": "photo_gallery", "required": true, "props": { "layout": "hero_then_grid" } },
+      { "type": "message", "required": true, "props": { "heading": "" } },
+      { "type": "final_reveal", "required": true, "props": { "prompt": "With love" } },
+      { "type": "footer", "required": true }
+    ],
+    "theme": {
+      "colors": { "background": "#0A0A0A", "surface": "#141414", "text": "#F5F1E8", "accent": "#C9A24B" },
+      "font": "cormorant"
+    },
+    "customizable": {
+      "colors": ["accent"],
+      "fonts": ["cormorant", "playfair"]
+    },
+    "limits": { "minPhotos": 1, "maxMemories": 0 }
+  }
+}

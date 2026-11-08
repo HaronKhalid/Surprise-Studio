@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "storage:init": "node scripts/init-storage.js",
+    "templates:seed": "node scripts/seed-templates.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

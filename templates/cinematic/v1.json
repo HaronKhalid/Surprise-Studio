@@ -1,0 +1,29 @@
+{
+  "slug": "cinematic",
+  "version": 1,
+  "name": "Cinematic",
+  "occasion": "birthday",
+  "configuration": {
+    "schemaVersion": 1,
+    "displayOrder": 1,
+    "description": "Dark, elegant and emotional. A slow reveal, like the opening of a film.",
+    "sections": [
+      { "type": "hero", "required": true, "props": { "eyebrow": "Someone made something for you…" } },
+      { "type": "photo_gallery", "required": true, "props": { "layout": "reveal" } },
+      { "type": "memory_cards", "required": false, "props": { "heading": "Moments we keep" } },
+      { "type": "message", "required": true, "props": { "heading": "A few words for you" } },
+      { "type": "final_reveal", "required": true, "props": { "prompt": "One more thing…" } },
+      { "type": "final_wish", "required": true, "props": { "text": "Happy Birthday, {name}" } },
+      { "type": "footer", "required": true }
+    ],
+    "theme": {
+      "colors": { "background": "#0B1020", "surface": "#151B2E", "text": "#FFFFFF", "accent": "#D4AF37" },
+      "font": "playfair"
+    },
+    "customizable": {
+      "colors": ["accent"],
+      "fonts": ["playfair", "cormorant", "dm-serif", "inter"]
+    },
+    "limits": { "minPhotos": 1, "maxMemories": 6 }
+  }
+}

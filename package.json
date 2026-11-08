@@ -6,6 +6,7 @@
   "scripts": {
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
+    "infra:up": "docker compose up -d postgres storage",
     "api": "npm --prefix apps/api run",
     "web": "npm --prefix apps/web run"
   },

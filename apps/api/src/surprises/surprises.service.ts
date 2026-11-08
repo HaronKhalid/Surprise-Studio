@@ -2,16 +2,35 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { Prisma, Surprise, SurpriseStatus } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { PrismaService } from '../prisma/prisma.service';
+import { checkPublishRequirements, checkTheme, resolveTheme, TemplateConfig } from '../templates/template-config';
+import { TemplateRecord, TemplatesService } from '../templates/templates.service';
 import { CreateSurpriseDto, UpdateSurpriseDto } from './dto/surprise.dto';
 
 const SLUG_LENGTH = 10;
 
+/** Client-editable columns. Create-typed values are also valid for updates. */
+type SurpriseFields = Partial<
+  Pick<
+    Prisma.SurpriseUncheckedCreateInput,
+    | 'occasion'
+    | 'recipientName'
+    | 'recipientNickname'
+    | 'relationship'
+    | 'message'
+    | 'templateId'
+    | 'visibility'
+    | 'content'
+    | 'theme'
+  >
+>;
+
 @Injectable()
 export class SurprisesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly templates: TemplatesService) {}
 
   async create(userId: string, dto: CreateSurpriseDto) {
-    if (dto.templateId) await this.assertTemplate(dto.templateId);
+    const template = dto.templateId ? await this.templates.getActive(dto.templateId) : null;
+    this.assertCustomisation(template, dto);
     return this.prisma.surprise.create({
       data: {
         ...this.toData(dto),
@@ -33,9 +52,22 @@ export class SurprisesService {
   }
 
   async update(userId: string, id: string, dto: UpdateSurpriseDto) {
-    await this.findOwned(userId, id);
-    if (dto.templateId) await this.assertTemplate(dto.templateId);
-    return this.prisma.surprise.update({ where: { id }, data: this.toData(dto) });
+    const current = await this.findOwned(userId, id);
+    // `null` clears the template; `undefined` leaves it alone.
+    const nextTemplateId = dto.templateId === undefined ? current.templateId : dto.templateId;
+    const templateChanged = nextTemplateId !== current.templateId;
+    let template: TemplateRecord | null = null;
+    if (nextTemplateId) {
+      template = templateChanged
+        ? await this.templates.getActive(nextTemplateId)
+        : await this.templates.findById(nextTemplateId); // keep working with a since-retired version
+    }
+    this.assertCustomisation(template, dto);
+
+    const data = this.toData(dto);
+    // Overrides belong to one template: switching template drops them unless new ones came along.
+    if (templateChanged && dto.theme === undefined) data.theme = {};
+    return this.prisma.surprise.update({ where: { id }, data });
   }
 
   /** Soft delete: the public link stops working immediately. */
@@ -54,12 +86,24 @@ export class SurprisesService {
       throw new BadRequestException({ code: 'TEMPLATE_REQUIRED', message: 'Choose a template before publishing' });
     }
     const assets = s.assets.filter((a) => a.confirmed);
+    const config = s.template.configuration as unknown as TemplateConfig;
+    const memories = (s.content as { memories?: unknown[] } | null)?.memories;
+    const violations = checkPublishRequirements(config, {
+      message: s.message,
+      photoCount: assets.length,
+      memoryCount: Array.isArray(memories) ? memories.length : 0,
+    });
+    if (violations.length) {
+      throw new BadRequestException({ code: violations[0].code, message: violations.map((v) => v.message).join('; ') });
+    }
+
     const snapshot = {
       occasion: s.occasion,
       recipient: { name: s.recipientName, nickname: s.recipientNickname, relationship: s.relationship },
       message: s.message,
       content: s.content,
-      theme: s.theme,
+      // Fully resolved tokens, so the renderer never has to merge or trust raw overrides.
+      theme: resolveTheme(config, s.theme),
       template: { slug: s.template.slug, version: s.template.version, configuration: s.template.configuration },
       assets: assets.map((a) => ({ storageKey: a.storageKey, width: a.width, height: a.height })),
     };
@@ -71,7 +115,7 @@ export class SurprisesService {
         slug,
         status: SurpriseStatus.PUBLISHED,
         publishedAt: new Date(),
-        publishedSnapshot: snapshot as Prisma.InputJsonValue,
+        publishedSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -102,10 +146,25 @@ export class SurprisesService {
     };
   }
 
-  private async assertTemplate(templateId: string) {
-    const t = await this.prisma.template.findUnique({ where: { id: templateId } });
-    if (!t || !t.isActive) {
-      throw new BadRequestException({ code: 'TEMPLATE_NOT_FOUND', message: 'Template not found' });
+  /** Theme and content are checked against the template they will be rendered with. */
+  private assertCustomisation(template: TemplateRecord | null, dto: CreateSurpriseDto | UpdateSurpriseDto) {
+    // Plain JSON drops the `undefined` fields that DTO class instances carry.
+    const theme = dto.theme ? (JSON.parse(JSON.stringify(dto.theme)) as Record<string, unknown>) : undefined;
+    if (theme && Object.keys(theme).length > 0) {
+      if (!template) {
+        throw new BadRequestException({ code: 'TEMPLATE_REQUIRED', message: 'Choose a template before customising its theme' });
+      }
+      const { violations } = checkTheme(template.configuration, theme);
+      if (violations.length) {
+        throw new BadRequestException({ code: violations[0].code, message: violations.map((v) => v.message).join('; ') });
+      }
+    }
+    const memories = dto.content?.memories?.length ?? 0;
+    if (template && memories > template.configuration.limits.maxMemories) {
+      throw new BadRequestException({
+        code: 'TOO_MANY_MEMORIES',
+        message: `The ${template.name} template supports at most ${template.configuration.limits.maxMemories} memories`,
+      });
     }
   }
 
@@ -119,10 +178,13 @@ export class SurprisesService {
 
   private toData(dto: CreateSurpriseDto | UpdateSurpriseDto) {
     const { content, theme, ...rest } = dto;
-    return {
+    // DTOs are class instances; store plain JSON. `null` (clearing) becomes the column default `{}`.
+    const json = (v: unknown) => JSON.parse(JSON.stringify(v ?? {})) as Prisma.InputJsonValue;
+    const data: SurpriseFields = {
       ...rest,
-      ...(content !== undefined && { content: content as Prisma.InputJsonValue }),
-      ...(theme !== undefined && { theme: theme as Prisma.InputJsonValue }),
+      ...(content !== undefined && { content: json(content) }),
+      ...(theme !== undefined && { theme: json(theme) }),
     };
+    return data;
   }
 }

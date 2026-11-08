@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './storage/storage.module';
 import { SurprisesModule } from './surprises/surprises.module';
 import { AssetsModule } from './assets/assets.module';
+import { TemplatesModule } from './templates/templates.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AssetsModule } from './assets/assets.module';
     SurprisesModule,
     StorageModule,
     AssetsModule,
+    TemplatesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
