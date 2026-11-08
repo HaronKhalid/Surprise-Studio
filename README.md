@@ -29,9 +29,21 @@ Optional storage settings in `.env` (`STORAGE_PUBLIC_ENDPOINT`, `STORAGE_PUBLIC_
 blank, which means "use the default". Set `STORAGE_PUBLIC_ENDPOINT=http://10.0.2.2:9000` when testing
 from the Android emulator so it can reach storage on your machine.
 
+## Local setup (web)
+The public surprise pages render from the API, so start the API first.
+```
+cd apps/web
+npm install
+npm run dev                        # http://localhost:3000, surprises at /s/<slug>
+```
+`API_URL` (server-side, falls back to `NEXT_PUBLIC_API_URL`) points at the API, and
+`NEXT_PUBLIC_SITE_URL` is the public origin used in social previews. Defaults work for local development.
+Pages are rendered on demand and never cached, so unpublishing or deleting takes effect immediately.
+
 ## Tests
 ```
 cd apps/api && npm test
+cd apps/web && npm run typecheck && npm test   # web tests use Node's built-in runner: Node >= 22.18
 ```
 Use `npm test`, not `npx jest`: Nest 12 is ESM-only and Jest needs `--experimental-vm-modules` to load it.
 

@@ -1,0 +1,644 @@
+/* ============================================================================================
+   Base
+   ============================================================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: #0b0b0f;
+  color: #fff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+a {
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent, #d4af37);
+  outline-offset: 3px;
+}
+
+/* ============================================================================================
+   Marketing + notice pages (not themed by a surprise)
+   ============================================================================================ */
+.landing,
+.notice {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding: 3rem 1.5rem;
+  background: radial-gradient(ellipse at 50% 20%, #26203f, #0b0b0f 65%);
+}
+.landing-eyebrow {
+  margin: 0;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: #d4af37;
+}
+.landing h1,
+.notice h1 {
+  margin: 0;
+  max-width: 24ch;
+  font-size: clamp(2rem, 7vw, 3.6rem);
+  line-height: 1.12;
+  font-weight: 600;
+}
+.landing-lead,
+.notice p {
+  margin: 0;
+  max-width: 34rem;
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  opacity: 0.8;
+}
+.landing-steps {
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  opacity: 0.9;
+}
+.landing-note {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.55;
+}
+.notice-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border: 1px solid #d4af37;
+  border-radius: 999px;
+  background: none;
+  color: #d4af37;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.notice-link:hover {
+  background: #d4af37;
+  color: #0b0b0f;
+}
+
+/* ============================================================================================
+   Surprise experience: structure shared by every template.
+   Colours and font come from CSS variables set from the surprise's resolved theme.
+   ============================================================================================ */
+.experience {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow-x: clip;
+}
+.container {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+.section {
+  padding: clamp(3.5rem, 10vw, 7.5rem) clamp(1.25rem, 6vw, 4rem);
+}
+.heading {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.05rem, 3.2vw, 1.3rem);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ---- hero ---- */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+.eyebrow {
+  margin: 0;
+  font-size: clamp(0.95rem, 3.2vw, 1.2rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  animation: rise 0.9s both;
+}
+.hero-name {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(3rem, 16vw, 8rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  animation: rise 1.2s 0.25s both;
+}
+.hero-intro {
+  margin: 0;
+  max-width: 32rem;
+  font-size: clamp(1.05rem, 3.5vw, 1.3rem);
+  opacity: 0.85;
+  animation: rise 1.2s 0.55s both;
+}
+.scroll-hint {
+  position: absolute;
+  bottom: 1.75rem;
+  color: var(--accent);
+  animation: bob 2.2s ease-in-out infinite;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 1;
+  }
+}
+
+/* ---- scroll reveal (armed by JS only when safe, so content is visible without it) ---- */
+.reveal-armed {
+  opacity: 0;
+  transform: translateY(28px) scale(0.985);
+  transition:
+    opacity 0.9s ease var(--reveal-delay, 0ms),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms);
+}
+.reveal-armed.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- photos ---- */
+.photo {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: zoom-in;
+}
+.photo img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 3rem);
+}
+/* Row-major grid: photos read left to right in the order the creator arranged them (CSS columns
+   would flow top-to-bottom per column and scramble that). Uniform cells keep rows tidy; the full,
+   uncropped photo is one tap away in the lightbox. */
+.grid {
+  max-width: 60rem;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.6rem, 2vw, 1rem);
+}
+.grid .photo img {
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 35%;
+}
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* reveal: one large photo at a time */
+.gallery--reveal .photo-wrap {
+  width: 100%;
+  max-width: 53.75rem;
+}
+.gallery--reveal .photo img {
+  width: auto;
+  max-width: 100%;
+  max-height: 88svh;
+  margin-inline: auto;
+}
+
+/* hero_then_grid: first photo full-bleed, the rest in a quiet grid */
+/* Natural shape for landscape photos; only a very tall portrait gets cropped to fit the screen. */
+.photo--hero img {
+  width: 100%;
+  height: auto;
+  max-height: min(92svh, 56rem);
+  object-fit: cover;
+  border-radius: 0;
+}
+
+/* timeline: photos hang off a vertical line */
+.gallery--timeline .stack {
+  position: relative;
+  max-width: 60rem;
+  margin-inline: auto;
+  align-items: stretch;
+  padding-left: 2.25rem;
+  gap: clamp(2rem, 6vw, 4rem);
+}
+.gallery--timeline .stack::before {
+  content: '';
+  position: absolute;
+  left: 0.6rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.gallery--timeline .photo-wrap {
+  position: relative;
+}
+.gallery--timeline .photo-wrap::before {
+  content: '';
+  position: absolute;
+  left: -2.05rem;
+  top: 1.2rem;
+  z-index: 1;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+@media (min-width: 900px) {
+  .gallery--timeline .stack {
+    padding-left: 0;
+  }
+  .gallery--timeline .stack::before {
+    left: calc(50% - 1px);
+  }
+  .gallery--timeline .photo-wrap {
+    width: calc(50% - 2.5rem);
+  }
+  .gallery--timeline .photo-wrap:nth-child(odd) {
+    align-self: flex-start;
+  }
+  .gallery--timeline .photo-wrap:nth-child(even) {
+    align-self: flex-end;
+  }
+  .gallery--timeline .photo-wrap:nth-child(odd)::before {
+    left: auto;
+    right: -2.9rem;
+  }
+  .gallery--timeline .photo-wrap:nth-child(even)::before {
+    left: -2.9rem;
+  }
+}
+
+/* ---- lightbox (native <dialog>) ---- */
+.lightbox {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+}
+.lightbox[open] {
+  display: grid;
+  place-items: center;
+}
+.lightbox::backdrop {
+  background: rgb(0 0 0 / 0.93);
+}
+.lightbox img {
+  max-width: 96vw;
+  max-height: 92dvh;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---- memories ---- */
+.memory-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+.memory {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 14px;
+  padding: 1.4rem 1.5rem;
+}
+.memory h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.memory p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ---- message ---- */
+.message-body {
+  margin: 0;
+  font-size: clamp(1.15rem, 3.8vw, 1.55rem);
+  line-height: 1.75;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ---- final reveal (<details>) ---- */
+.reveal-box {
+  text-align: center;
+}
+.reveal-box summary {
+  display: inline-block;
+  padding: 1rem 2.2rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  letter-spacing: 0.08em;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.3s,
+    color 0.3s;
+}
+.reveal-box summary::-webkit-details-marker {
+  display: none;
+}
+.reveal-box summary:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.reveal-box[open] summary {
+  display: none;
+}
+.reveal-content {
+  position: relative;
+  animation: rise 1s both;
+}
+.reveal-content p {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 2.6rem);
+  line-height: 1.3;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.burst span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: burst 1.4s ease-out both;
+}
+@keyframes burst {
+  from {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--dist) * -1)) scale(0.4);
+  }
+}
+
+/* ---- final wish ---- */
+.wish {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(2rem, 9vw, 4.5rem);
+  line-height: 1.15;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+/* ---- confetti ---- */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confetti span {
+  position: absolute;
+  top: -16px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation-name: fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(540deg);
+  }
+}
+
+/* ---- footer ---- */
+.site-footer {
+  padding: 3rem 1.25rem 4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+.site-footer p {
+  margin: 0 0 0.75rem;
+}
+.cta {
+  display: inline-block;
+  padding: 0.65rem 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.cta:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================================================================
+   Template variants. Same structure, different personality.
+   ============================================================================================ */
+
+/* cinematic: dark, soft spotlight, deep shadows */
+[data-template='cinematic'] .hero {
+  background: radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%);
+}
+[data-template='cinematic'] .photo img {
+  box-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.85);
+}
+[data-template='cinematic'] .memory {
+  background: linear-gradient(160deg, var(--surface), color-mix(in srgb, var(--surface) 70%, var(--bg)));
+}
+
+/* cute: bright, rounded, slightly tilted polaroids */
+[data-template='cute'] .eyebrow {
+  font-size: clamp(1.6rem, 7vw, 2.6rem);
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-template='cute'] .hero-name {
+  color: var(--accent);
+  font-weight: 700;
+}
+[data-template='cute'] .heading {
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-template='cute'] .photo img {
+  border: 6px solid var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px -12px rgb(60 20 50 / 0.35);
+}
+[data-template='cute'] .grid .photo-wrap:nth-child(odd) .photo {
+  transform: rotate(-1.6deg);
+}
+[data-template='cute'] .grid .photo-wrap:nth-child(even) .photo {
+  transform: rotate(1.4deg);
+}
+[data-template='cute'] .memory {
+  border-radius: 22px;
+}
+
+/* memories: warm paper, framed prints, timeline */
+[data-template='memories'] .photo img {
+  border: 10px solid var(--surface);
+  border-radius: 2px;
+  box-shadow: 0 8px 24px -10px rgb(60 40 20 / 0.35);
+}
+[data-template='memories'] .memory {
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+[data-template='memories'] .hero-name {
+  font-size: clamp(2.6rem, 14vw, 6.5rem);
+}
+
+/* luxury: minimal, hairlines, wide tracking */
+[data-template='luxury'] .eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.4em;
+}
+[data-template='luxury'] .hero-name {
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+[data-template='luxury'] .hero::after {
+  content: '';
+  width: 3rem;
+  height: 1px;
+  margin-top: 1rem;
+  background: var(--accent);
+}
+[data-template='luxury'] .photo img {
+  border-radius: 0;
+}
+[data-template='luxury'] .heading {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+}
+[data-template='luxury'] .message-body {
+  font-weight: 300;
+}
+
+/* ============================================================================================
+   Small screens and reduced motion
+   ============================================================================================ */
+@media (max-width: 420px) {
+  .grid {
+    gap: 0.5rem;
+  }
+  .memory {
+    padding: 1.1rem 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .confetti,
+  .burst,
+  .scroll-hint {
+    display: none;
+  }
+}

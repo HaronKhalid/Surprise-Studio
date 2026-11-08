@@ -11,3 +11,5 @@ coverage/
 apps/mobile/.dart_tool/
 apps/mobile/build/
 apps/mobile/.flutter-plugins*
+next-env.d.ts
+*.tsbuildinfo
