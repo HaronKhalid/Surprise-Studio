@@ -8,6 +8,7 @@ import { StorageModule } from './storage/storage.module';
 import { SurprisesModule } from './surprises/surprises.module';
 import { AssetsModule } from './assets/assets.module';
 import { TemplatesModule } from './templates/templates.module';
+import { PublicModule } from './public/public.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TemplatesModule } from './templates/templates.module';
     StorageModule,
     AssetsModule,
     TemplatesModule,
+    PublicModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

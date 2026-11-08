@@ -260,6 +260,22 @@ export function resolveTheme(config: TemplateConfig, overrides: unknown): Resolv
   return violations.length ? { colors: { ...config.theme.colors }, font: config.theme.font } : theme;
 }
 
+/**
+ * For output paths: accepts an already-resolved theme only if every token is well formed, else
+ * returns the template defaults. Guards the public page against a malformed or tampered snapshot.
+ */
+export function sanitizeResolvedTheme(config: TemplateConfig, theme: unknown): ResolvedTheme {
+  const fallback = (): ResolvedTheme => ({ colors: { ...config.theme.colors }, font: config.theme.font });
+  if (!isObject(theme) || !isObject(theme.colors) || !isOneOf(FONT_KEYS, theme.font)) return fallback();
+  const colors = {} as Record<ColorKey, string>;
+  for (const key of COLOR_KEYS) {
+    const v = theme.colors[key];
+    if (typeof v !== 'string' || !HEX_COLOR.test(v)) return fallback();
+    colors[key] = v.toLowerCase();
+  }
+  return { colors, font: theme.font };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Publish requirements
 // ---------------------------------------------------------------------------------------------

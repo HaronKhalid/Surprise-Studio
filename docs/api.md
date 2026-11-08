@@ -34,6 +34,22 @@ Validation failures are `400` with code `BAD_REQUEST`. Routes are rate limited (
 Each item is `{ id, slug, name, occasion, version, configuration }`. Use `id` as `templateId` when
 creating or updating a surprise. See [templates.md](templates.md) for `configuration`.
 
+## Public surprise (no auth)
+
+| method | path | notes |
+|---|---|---|
+| GET | `/public/surprises/:slug` | what the web page renders; 60 requests/min per IP |
+
+Returns `{ slug, occasion, recipient: { name, nickname }, message, content, theme, template: { slug, version, sections }, photos: [{ width, height, urls: { thumb, medium, large } }], publishedAt }`.
+The list of fields is an allowlist built from the **published snapshot**, never the live draft: no user
+id or email, no database ids, no storage keys, no relationship. `theme` is the fully resolved set of
+tokens, so the renderer does not merge anything.
+
+Only surprises that are `PUBLISHED` **and** `UNLISTED` are served. Unpublished, deleted, `PRIVATE`,
+malformed and nonexistent slugs all return the same `404 SURPRISE_NOT_FOUND`, so the endpoint cannot be
+used to discover which slugs exist. Responses are `Cache-Control: no-store` so unpublishing and deleting
+take effect immediately, and carry `X-Robots-Tag: noindex`.
+
 ## Surprises (protected)
 
 | method | path | notes |

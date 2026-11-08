@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Asset } from '@prisma/client';
+import { nanoid } from 'nanoid';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageProvider } from '../storage/storage.provider';
@@ -15,8 +16,11 @@ import {
 
 const UPLOAD_URL_TTL_SECONDS = 300;
 
-/** Processed, publicly readable files live under assets/; raw uploads are private and short-lived. */
-const baseKey = (surpriseId: string, assetId: string) => `assets/${surpriseId}/${assetId}`;
+/**
+ * Processed, publicly readable files live under assets/; raw uploads are private and short-lived.
+ * The public key is random, not derived from database ids, because it ends up in public image URLs.
+ */
+const newBaseKey = () => `assets/${nanoid(24)}`;
 const uploadKey = (assetId: string) => `uploads/${assetId}`;
 const variantKeys = (key: string) => VARIANTS.map((v) => `${key}/${v.name}.webp`);
 
@@ -26,25 +30,23 @@ export class AssetsService {
 
   async createUploadUrl(userId: string, dto: UploadUrlDto) {
     await this.assertSurpriseOwner(userId, dto.surpriseId);
-    const count = await this.prisma.asset.count({ where: { surpriseId: dto.surpriseId } });
-    if (count >= MAX_PHOTOS_PER_SURPRISE) {
-      throw new BadRequestException({
-        code: 'PHOTO_LIMIT_REACHED',
-        message: `A surprise can have at most ${MAX_PHOTOS_PER_SURPRISE} photos`,
-      });
-    }
+    // Confirmed photos plus uploads still in flight. An abandoned upload stops counting once its
+    // URL has expired, so it cannot lock a user out of adding photos.
+    const inFlightSince = new Date(Date.now() - UPLOAD_URL_TTL_SECONDS * 1000);
+    const count = await this.prisma.asset.count({
+      where: { surpriseId: dto.surpriseId, OR: [{ confirmed: true }, { createdAt: { gt: inFlightSince } }] },
+    });
+    if (count >= MAX_PHOTOS_PER_SURPRISE) throw this.photoLimit();
 
     const asset = await this.prisma.asset.create({
       data: {
         surpriseId: dto.surpriseId,
-        storageKey: '',
+        storageKey: newBaseKey(),
         mimeType: dto.mimeType,
         size: dto.size,
         sortOrder: count,
       },
     });
-    const storageKey = baseKey(dto.surpriseId, asset.id);
-    await this.prisma.asset.update({ where: { id: asset.id }, data: { storageKey } });
 
     const uploadUrl = await this.storage.createUploadUrl(
       uploadKey(asset.id),
@@ -62,6 +64,10 @@ export class AssetsService {
 
     const raw = uploadKey(asset.id);
     try {
+      // Re-check at the point that actually makes a photo count (several URLs may have been issued).
+      const confirmed = await this.prisma.asset.count({ where: { surpriseId: asset.surpriseId, confirmed: true } });
+      if (confirmed >= MAX_PHOTOS_PER_SURPRISE) throw this.photoLimit();
+
       const head = await this.storage.head(raw);
       if (!head) throw this.invalid('UPLOAD_NOT_FOUND', 'The file was not uploaded');
       if (head.size > MAX_UPLOAD_BYTES) throw this.invalid('FILE_TOO_LARGE', 'File is too large');
@@ -137,6 +143,10 @@ export class AssetsService {
 
   private invalid(code: string, message: string) {
     return new BadRequestException({ code, message });
+  }
+
+  private photoLimit() {
+    return this.invalid('PHOTO_LIMIT_REACHED', `A surprise can have at most ${MAX_PHOTOS_PER_SURPRISE} photos`);
   }
 
   private async assertSurpriseOwner(userId: string, surpriseId: string) {

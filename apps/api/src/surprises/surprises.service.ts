@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { checkPublishRequirements, checkTheme, resolveTheme, TemplateConfig } from '../templates/template-config';
 import { TemplateRecord, TemplatesService } from '../templates/templates.service';
 import { CreateSurpriseDto, UpdateSurpriseDto } from './dto/surprise.dto';
+import type { PublishedSnapshot } from './published-snapshot';
 
 const SLUG_LENGTH = 10;
 
@@ -97,14 +98,14 @@ export class SurprisesService {
       throw new BadRequestException({ code: violations[0].code, message: violations.map((v) => v.message).join('; ') });
     }
 
-    const snapshot = {
+    const snapshot: PublishedSnapshot = {
       occasion: s.occasion,
       recipient: { name: s.recipientName, nickname: s.recipientNickname, relationship: s.relationship },
       message: s.message,
       content: s.content,
       // Fully resolved tokens, so the renderer never has to merge or trust raw overrides.
       theme: resolveTheme(config, s.theme),
-      template: { slug: s.template.slug, version: s.template.version, configuration: s.template.configuration },
+      template: { slug: s.template.slug, version: s.template.version, configuration: config },
       assets: assets.map((a) => ({ storageKey: a.storageKey, width: a.width, height: a.height })),
     };
 
