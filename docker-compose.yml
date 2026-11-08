@@ -10,5 +10,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Local S3-compatible storage (RustFS). Swap for R2/S3 in production via STORAGE_* env vars.
+  # Create the bucket once with: npm run storage:init  (in apps/api)
+  storage:
+    image: rustfs/rustfs
+    environment:
+      RUSTFS_ACCESS_KEY: minioadmin
+      RUSTFS_SECRET_KEY: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - storagedata:/data
+    user: root
+
 volumes:
   pgdata:
+  storagedata:
