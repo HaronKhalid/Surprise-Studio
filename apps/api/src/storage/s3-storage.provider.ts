@@ -22,10 +22,13 @@ export class S3StorageProvider extends StorageProvider {
     super();
     this.bucket = config.getOrThrow('STORAGE_BUCKET');
     const endpoint = config.getOrThrow<string>('STORAGE_ENDPOINT');
+    // Optional vars are documented as blank in .env.example, so blank must mean "unset".
+    // (`??` would keep '' and the AWS SDK would then silently fall back to real AWS.)
+    const optional = (name: string) => config.get<string>(name)?.trim() || undefined;
     const make = (ep: string) =>
       new S3Client({
         endpoint: ep,
-        region: config.get('STORAGE_REGION') ?? 'auto',
+        region: optional('STORAGE_REGION') ?? 'auto',
         forcePathStyle: true,
         credentials: {
           accessKeyId: config.getOrThrow('STORAGE_ACCESS_KEY'),
@@ -33,8 +36,8 @@ export class S3StorageProvider extends StorageProvider {
         },
       });
     this.client = make(endpoint);
-    this.signingClient = make(config.get('STORAGE_PUBLIC_ENDPOINT') ?? endpoint);
-    this.publicBase = (config.get<string>('STORAGE_PUBLIC_URL') ?? `${endpoint}/${this.bucket}`).replace(/\/$/, '');
+    this.signingClient = make(optional('STORAGE_PUBLIC_ENDPOINT') ?? endpoint);
+    this.publicBase = (optional('STORAGE_PUBLIC_URL') ?? `${endpoint}/${this.bucket}`).replace(/\/$/, '');
   }
 
   createUploadUrl(key: string, contentType: string, contentLength: number, expiresInSeconds: number) {
