@@ -40,8 +40,16 @@ npm run dev                        # http://localhost:3000, surprises at /s/<slu
 `NEXT_PUBLIC_SITE_URL` is the public origin used in social previews. Defaults work for local development.
 Pages are rendered on demand and never cached, so unpublishing or deleting takes effect immediately.
 
+## Local setup (mobile)
+Needs the Flutter and Android SDKs. See [docs/mobile.md](docs/mobile.md) for `adb reverse`, `--dart-define`
+configuration, signing and the pre-release checklist.
+```
+cd apps/mobile && flutter pub get && flutter run
+```
+
 ## Tests
 ```
+cd apps/mobile && flutter analyze && flutter test
 cd apps/api && npm test
 cd apps/web && npm run typecheck && npm test   # web tests use Node's built-in runner: Node >= 22.18
 ```
