@@ -47,7 +47,11 @@ cd apps/web && npm run typecheck && npm test   # web tests use Node's built-in r
 ```
 Use `npm test`, not `npx jest`: Nest 12 is ESM-only and Jest needs `--experimental-vm-modules` to load it.
 
-## Production notes
-Point `STORAGE_*` at Cloudflare R2 or S3 instead of RustFS and run `npm run storage:init` once. Run
-`npm run templates:seed` on deploy; it never changes a released template version (see
-[docs/templates.md](docs/templates.md)).
+## Housekeeping and production
+`npm run maintenance` (in `apps/api`, after `npm run build`) removes abandoned uploads, leftover photos of
+deleted surprises and expired data. Schedule it daily in production; it is safe to run any time.
+
+The API validates its configuration at startup and, with `NODE_ENV=production`, refuses weak secrets, a
+blank `CORS_ORIGIN` and the local storage credentials. Container images, release order, scheduling and
+monitoring are in [docs/deployment.md](docs/deployment.md). CI (`.github/workflows/ci.yml`) typechecks,
+tests and builds both apps, checks that every schema change has a migration, and builds the images.

@@ -10,6 +10,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StorageProvider } from './storage.provider';
 
+const DELETE_BATCH = 1000;
+
 @Injectable()
 export class S3StorageProvider extends StorageProvider {
   private readonly bucket: string;
@@ -74,11 +76,22 @@ export class S3StorageProvider extends StorageProvider {
     );
   }
 
+  /**
+   * Deleting a missing key is not an error. S3 caps one request at 1000 keys, and reports per-key
+   * failures in the response body rather than by throwing, so those are surfaced here: callers
+   * delete database rows after this returns, and must not do that if files are still there.
+   */
   async deleteObjects(keys: string[]) {
-    if (!keys.length) return;
-    await this.client.send(
-      new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true } }),
-    );
+    for (let i = 0; i < keys.length; i += DELETE_BATCH) {
+      const batch = keys.slice(i, i + DELETE_BATCH);
+      const res = await this.client.send(
+        new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true } }),
+      );
+      if (res.Errors?.length) {
+        const first = res.Errors[0];
+        throw new Error(`Failed to delete ${res.Errors.length} object(s), e.g. ${first.Key}: ${first.Code} ${first.Message ?? ''}`.trim());
+      }
+    }
   }
 
   publicUrl(key: string) {

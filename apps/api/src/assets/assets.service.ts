@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageProvider } from '../storage/storage.provider';
+import { uploadKey, variantKeys } from './asset-keys';
 import { UploadUrlDto } from './dto/asset.dto';
 import {
   MAX_DIMENSION,
@@ -17,13 +18,8 @@ import {
 
 const UPLOAD_URL_TTL_SECONDS = 300;
 
-/**
- * Processed, publicly readable files live under assets/; raw uploads are private and short-lived.
- * The public key is random, not derived from database ids, because it ends up in public image URLs.
- */
+/** Random, not derived from database ids: it ends up in public image URLs. */
 const newBaseKey = () => `assets/${nanoid(24)}`;
-const uploadKey = (assetId: string) => `uploads/${assetId}`;
-const variantKeys = (key: string) => VARIANTS.map((v) => `${key}/${v.name}.webp`);
 
 @Injectable()
 export class AssetsService {

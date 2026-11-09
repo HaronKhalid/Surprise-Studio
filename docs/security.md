@@ -34,16 +34,33 @@ prefix is publicly readable; `uploads/` (raw files) is not.
 **Other.** Passwords hashed with argon2, global and per-route rate limits (register 5/min, login 10/min),
 a consistent error envelope that never includes stack traces, `.env` never committed.
 
+**Deletion.** Deleting a surprise erases its photos from storage immediately and soft-deletes the row
+(purged after 30 days). Deleting an account (`DELETE /auth/me`, password required) erases every photo first
+and aborts if storage fails, so a retry never leaves files behind. A scheduled `npm run maintenance` mops up
+anything that slipped through (storage outages, abandoned uploads) and applies the retention policy in
+`apps/api/src/maintenance/retention.ts`. Storage reports per-key delete failures and these are treated as errors,
+never silently ignored. *Unpublishing* keeps the photos (so republishing works) and they stay reachable at their
+unguessable URLs; deleting is what removes them.
+
+**Production configuration is checked at startup.** The API refuses to boot in production with weak or equal
+JWT secrets, a blank or `*` CORS origin, or the local development storage credentials.
+
+**Logging and analytics.** Request logs are structured JSON that record the route pattern, never the URL, query,
+headers or body, so slugs, tokens and passwords cannot reach the log store. Analytics events carry an event name,
+the surprise and up to three short tokens; no IP, user agent or user id is stored. The web app reports views from
+the browser (link-preview bots do not run JavaScript), honours Do Not Track and counts once per session.
+
+**Login timing.** Unknown emails take as long to reject as wrong passwords, and concurrent sign-ups for one email
+resolve to a clean `EMAIL_TAKEN`. (Registration still reveals whether an email is taken, which is the usual
+trade-off for a usable sign-up form; the rate limit applies.)
+
 ## Known gaps (not enforced yet)
 
-- **Deleting or unpublishing a surprise does not delete its photos from storage.** The public *page*
-  stops working immediately, but the image files remain at their (unguessable) URLs. Anyone who already
-  saved a photo URL can still fetch it. Needs the storage-lifecycle cleanup job from the architecture doc
-  (soft delete, retention period, then permanent deletion), plus deletion on account removal. Until then
-  this should not be described to users as "deleted".
-- Public photo URLs are unguessable but not secret once shared. If stricter privacy is wanted later,
-  serve images through signed, expiring URLs or an authenticated proxy.
-- Abandoned (never confirmed) upload rows are ignored by the photo limit once their URL expires but are
-  not yet purged.
-- No CSP header yet on the web app, and no abuse reporting or moderation.
+- Public photo URLs are unguessable but not secret once shared. If stricter privacy is wanted later, serve
+  images through signed, expiring URLs or an authenticated proxy.
+- Files that exist in storage with no database row (for example after a crash between upload and record) are
+  not detected; that needs a periodic bucket listing job.
+- No Content-Security-Policy on the web app yet, and no abuse reporting or moderation.
+- No email verification or password reset (needs an email provider), and no account lockout beyond rate limits.
 - No privacy policy or terms of service pages (required before launch, and they need legal review).
+- No error tracking (Sentry or similar) and no automated dependency-vulnerability gate beyond Dependabot.

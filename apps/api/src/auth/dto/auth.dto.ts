@@ -11,6 +11,10 @@ export class LoginDto {
   @IsString() @MaxLength(128) password!: string;
 }
 
+export class DeleteAccountDto {
+  @IsString() @MaxLength(128) password!: string;
+}
+
 export class RefreshDto {
   @IsString() @MinLength(20) @MaxLength(256) refreshToken!: string;
 }

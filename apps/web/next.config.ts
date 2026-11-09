@@ -10,6 +10,8 @@ const securityHeaders = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // Self-contained server bundle for the container image (see apps/web/Dockerfile).
+  output: 'standalone',
   reactStrictMode: true,
   async headers() {
     return [

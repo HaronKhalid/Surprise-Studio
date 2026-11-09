@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { fontFamily, fontVariableClasses } from '@/lib/fonts';
 import type { PublicSurprise, Section, SectionType, Theme } from '@/lib/types';
+import { ViewBeacon } from './Beacons';
 import { Confetti } from './sections/Confetti';
 import { FinalReveal } from './sections/FinalReveal';
 import { FinalWish } from './sections/FinalWish';
@@ -51,8 +52,9 @@ export function Experience({ surprise }: { surprise: PublicSurprise }) {
   return (
     <div className={`experience ${fontVariableClasses}`} data-template={surprise.template.slug} style={style}>
       {hasConfetti && <Confetti />}
+      <ViewBeacon slug={surprise.slug} template={surprise.template.slug} />
       <main>{sections.map(render)}</main>
-      <Footer />
+      <Footer slug={surprise.slug} template={surprise.template.slug} />
     </div>
   );
 }

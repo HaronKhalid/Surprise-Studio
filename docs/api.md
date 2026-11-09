@@ -23,6 +23,25 @@ Validation failures are `400` with code `BAD_REQUEST`. Routes are rate limited (
 | POST | `/auth/refresh` | `{ refreshToken }`; rotates the refresh token |
 | POST | `/auth/logout` | revokes the refresh token |
 | GET | `/auth/me` | current user |
+| DELETE | `/auth/me` | `{ password }`. Permanently deletes the account, all its surprises and photos (erased from storage first; if that fails nothing is deleted and you can retry). The access token keeps working for up to 15 minutes but every endpoint then answers 401/404. |
+
+## Health (no auth, never rate limited)
+
+| method | path | notes |
+|---|---|---|
+| GET | `/health` | liveness: the process is up |
+| GET | `/health/ready` | readiness: `503 NOT_READY` if the database does not answer |
+
+Every response carries `X-Request-Id`. Send your own (8-64 chars of `A-Za-z0-9._-`) to trace a request.
+
+## Analytics (no auth)
+
+`POST /analytics/events` with `{ eventType, slug?, metadata?: { source?, template?, step? } }` returns `202`.
+`eventType` is one of `app_opened`, `create_started`, `surprise_created`, `template_selected`, `photo_uploaded`,
+`preview_opened`, `surprise_published`, `share_clicked`, `public_page_opened`, `public_view_completed`,
+`cta_clicked`. Metadata values are short tokens (`[a-z0-9_-]`, up to 30 characters); anything else is `400`.
+Nothing about the caller is stored (no IP, user agent or user id). An unknown or unpublished `slug` is accepted
+and simply not linked, so the endpoint reveals nothing about which slugs exist. 60 requests/min per IP.
 
 ## Templates (public, cached 5 min)
 

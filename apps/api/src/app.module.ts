@@ -9,10 +9,13 @@ import { SurprisesModule } from './surprises/surprises.module';
 import { AssetsModule } from './assets/assets.module';
 import { TemplatesModule } from './templates/templates.module';
 import { PublicModule } from './public/public.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { HealthModule } from './health/health.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
     AuthModule,
@@ -21,6 +24,8 @@ import { PublicModule } from './public/public.module';
     AssetsModule,
     TemplatesModule,
     PublicModule,
+    AnalyticsModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

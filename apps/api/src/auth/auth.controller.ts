@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshDto, RegisterDto } from './dto/auth.dto';
+import { DeleteAccountDto, LoginDto, RefreshDto, RegisterDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
@@ -39,5 +39,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: AuthUser) {
     return { success: true, data: await this.auth.me(user.id) };
+  }
+
+  /** Permanently deletes the account, all its surprises and photos. Needs the password. */
+  @Delete('me')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async deleteAccount(@CurrentUser() user: AuthUser, @Body() dto: DeleteAccountDto) {
+    await this.auth.deleteAccount(user.id, dto.password);
+    return { success: true, data: null };
   }
 }

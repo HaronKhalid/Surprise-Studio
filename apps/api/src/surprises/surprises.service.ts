@@ -1,6 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, Surprise, SurpriseStatus } from '@prisma/client';
 import { nanoid } from 'nanoid';
+import { AssetCleanupService } from '../assets/asset-cleanup.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { checkPublishRequirements, checkTheme, resolveTheme, TemplateConfig } from '../templates/template-config';
 import { TemplateRecord, TemplatesService } from '../templates/templates.service';
@@ -27,7 +28,13 @@ type SurpriseFields = Partial<
 
 @Injectable()
 export class SurprisesService {
-  constructor(private readonly prisma: PrismaService, private readonly templates: TemplatesService) {}
+  private readonly logger = new Logger(SurprisesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly templates: TemplatesService,
+    private readonly cleanup: AssetCleanupService,
+  ) {}
 
   async create(userId: string, dto: CreateSurpriseDto) {
     const template = dto.templateId ? await this.templates.getActive(dto.templateId) : null;
@@ -71,13 +78,25 @@ export class SurprisesService {
     return this.prisma.surprise.update({ where: { id }, data });
   }
 
-  /** Soft delete: the public link stops working immediately. */
+  /**
+   * The public page stops working immediately, and the photos are erased from storage right away
+   * rather than lingering until a cleanup job. The row itself is kept (soft delete) for the
+   * retention period, then purged by `npm run maintenance`.
+   *
+   * If storage is unreachable the delete still succeeds for the user; the maintenance job removes
+   * the leftover files of any DELETED surprise on its next run.
+   */
   async remove(userId: string, id: string) {
     await this.findOwned(userId, id);
     await this.prisma.surprise.update({
       where: { id },
       data: { status: SurpriseStatus.DELETED, publishedSnapshot: Prisma.DbNull },
     });
+    try {
+      await this.cleanup.deleteForSurprises([id]);
+    } catch (err) {
+      this.logger.error(`Photo cleanup failed for deleted surprise ${id}; maintenance will retry: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /** Freezes the current draft into publishedSnapshot. Calling again republishes (same URL). */
