@@ -1,0 +1,15 @@
+# Build context is the repo root (the API image needs templates/), so keep it small and secret-free.
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/*.log
+.git
+.github
+.env
+.env.*
+!.env.example
+apps/mobile
+docs
+scratchpad.md
+surprise-studio-scratchpad.md
