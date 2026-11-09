@@ -1,19 +1,32 @@
 import { EndBeacon, TrackedLink } from '@/components/Beacons';
 
-/** Subtle viral loop: part of every free surprise, never intrusive. */
-export function Footer({ slug, template }: { slug: string; template: string }) {
+/**
+ * Subtle viral loop: part of every free surprise, never intrusive.
+ * Without a `slug` (draft preview) the links are plain and nothing is reported.
+ */
+export function Footer({ slug, template }: { slug?: string; template: string }) {
   return (
     <footer className="site-footer">
-      <EndBeacon slug={slug} template={template} />
+      {slug && <EndBeacon slug={slug} template={template} />}
       <p>
         Made with{' '}
-        <TrackedLink slug={slug} step="footer_brand" href="/">
-          Surprise Studio
-        </TrackedLink>
+        {slug ? (
+          <TrackedLink slug={slug} step="footer_brand" href="/">
+            Surprise Studio
+          </TrackedLink>
+        ) : (
+          <a href="/">Surprise Studio</a>
+        )}
       </p>
-      <TrackedLink slug={slug} step="footer_cta" href="/" className="cta">
-        Create your own surprise
-      </TrackedLink>
+      {slug ? (
+        <TrackedLink slug={slug} step="footer_cta" href="/" className="cta">
+          Create your own surprise
+        </TrackedLink>
+      ) : (
+        <a href="/" className="cta">
+          Create your own surprise
+        </a>
+      )}
     </footer>
   );
 }

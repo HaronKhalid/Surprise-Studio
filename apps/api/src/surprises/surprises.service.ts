@@ -1,12 +1,16 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Prisma, Surprise, SurpriseStatus } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { AssetCleanupService } from '../assets/asset-cleanup.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { checkPublishRequirements, checkTheme, resolveTheme, TemplateConfig } from '../templates/template-config';
+import { checkPublishRequirements, checkTheme, TemplateConfig } from '../templates/template-config';
 import { TemplateRecord, TemplatesService } from '../templates/templates.service';
 import { CreateSurpriseDto, UpdateSurpriseDto } from './dto/surprise.dto';
+import { PREVIEW_TTL_SECONDS, previewSecret } from './preview-token';
 import type { PublishedSnapshot } from './published-snapshot';
+import { buildSnapshot } from './snapshot-builder';
 
 const SLUG_LENGTH = 10;
 
@@ -34,6 +38,8 @@ export class SurprisesService {
     private readonly prisma: PrismaService,
     private readonly templates: TemplatesService,
     private readonly cleanup: AssetCleanupService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async create(userId: string, dto: CreateSurpriseDto) {
@@ -117,16 +123,7 @@ export class SurprisesService {
       throw new BadRequestException({ code: violations[0].code, message: violations.map((v) => v.message).join('; ') });
     }
 
-    const snapshot: PublishedSnapshot = {
-      occasion: s.occasion,
-      recipient: { name: s.recipientName, nickname: s.recipientNickname, relationship: s.relationship },
-      message: s.message,
-      content: s.content,
-      // Fully resolved tokens, so the renderer never has to merge or trust raw overrides.
-      theme: resolveTheme(config, s.theme),
-      template: { slug: s.template.slug, version: s.template.version, configuration: config },
-      assets: assets.map((a) => ({ storageKey: a.storageKey, width: a.width, height: a.height })),
-    };
+    const snapshot: PublishedSnapshot = buildSnapshot({ ...s, template: s.template, assets });
 
     const slug = s.slug ?? (await this.uniqueSlug());
     return this.prisma.surprise.update({
@@ -138,6 +135,23 @@ export class SurprisesService {
         publishedSnapshot: snapshot as unknown as Prisma.InputJsonValue,
       },
     });
+  }
+
+  /**
+   * A short-lived link credential that lets the web renderer show this draft (see
+   * GET /public/previews/:token). Scoped to one surprise, expires in 10 minutes, and only the
+   * owner can mint it. The creator app opens `<site>/preview/<token>` in a WebView.
+   */
+  async createPreviewToken(userId: string, id: string) {
+    const s = await this.findOwned(userId, id, true);
+    if (!s.templateId) {
+      throw new BadRequestException({ code: 'TEMPLATE_REQUIRED', message: 'Choose a template to preview' });
+    }
+    const token = await this.jwt.signAsync(
+      { sid: s.id },
+      { secret: previewSecret(this.config.getOrThrow('JWT_SECRET')), expiresIn: PREVIEW_TTL_SECONDS },
+    );
+    return { token, expiresIn: PREVIEW_TTL_SECONDS };
   }
 
   /** Back to draft; the slug is kept so republishing restores the same link. */

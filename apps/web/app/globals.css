@@ -505,6 +505,25 @@ a {
   }
 }
 
+/* ---- draft preview ---- */
+.preview-badge {
+  position: fixed;
+  top: 0.6rem;
+  left: 50%;
+  z-index: 10;
+  margin: 0;
+  padding: 0.3rem 0.9rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+  font:
+    600 0.75rem/1.4 system-ui,
+    sans-serif;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 /* ---- footer ---- */
 .site-footer {
   padding: 3rem 1.25rem 4rem;

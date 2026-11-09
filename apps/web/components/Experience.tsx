@@ -30,7 +30,7 @@ const safe = (key: keyof Theme['colors'], v: string | undefined) => (v && HEX.te
  * Renders a surprise: template sections in order, styled by the surprise's theme tokens.
  * Everything here is data-driven; no recipient information is hard-coded in a component.
  */
-export function Experience({ surprise }: { surprise: PublicSurprise }) {
+export function Experience({ surprise, preview = false }: { surprise: PublicSurprise; preview?: boolean }) {
   const { colors, font } = surprise.theme;
   const style = {
     '--bg': safe('background', colors.background),
@@ -52,9 +52,16 @@ export function Experience({ surprise }: { surprise: PublicSurprise }) {
   return (
     <div className={`experience ${fontVariableClasses}`} data-template={surprise.template.slug} style={style}>
       {hasConfetti && <Confetti />}
-      <ViewBeacon slug={surprise.slug} template={surprise.template.slug} />
+      {preview ? (
+        <p className="preview-badge" role="status">
+          Preview · not published yet
+        </p>
+      ) : (
+        <ViewBeacon slug={surprise.slug} template={surprise.template.slug} />
+      )}
       <main>{sections.map(render)}</main>
-      <Footer slug={surprise.slug} template={surprise.template.slug} />
+      {/* No slug in preview: nothing the creator does while previewing is counted as a real view. */}
+      <Footer slug={preview ? undefined : surprise.slug} template={surprise.template.slug} />
     </div>
   );
 }

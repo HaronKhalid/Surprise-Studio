@@ -18,6 +18,13 @@ const config: NextConfig = {
       { source: '/:path*', headers: securityHeaders },
       // Unlisted surprises must never appear in search results.
       { source: '/s/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      {
+        source: '/preview/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
     ];
   },
 };

@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { CreateSurpriseDto, UpdateSurpriseDto } from './dto/surprise.dto';
@@ -40,6 +41,13 @@ export class SurprisesController {
   @HttpCode(200)
   async publish(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return { success: true, data: await this.surprises.publish(user.id, id) };
+  }
+
+  @Post(':id/preview')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async preview(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return { success: true, data: await this.surprises.createPreviewToken(user.id, id) };
   }
 
   @Post(':id/unpublish')

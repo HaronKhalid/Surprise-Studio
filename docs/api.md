@@ -64,7 +64,15 @@ The list of fields is an allowlist built from the **published snapshot**, never 
 id or email, no database ids, no storage keys, no relationship. `theme` is the fully resolved set of
 tokens, so the renderer does not merge anything.
 
-Only surprises that are `PUBLISHED` **and** `UNLISTED` are served. Unpublished, deleted, `PRIVATE`,
+`GET /public/previews/:token` returns the same shape for an **unpublished draft**, so the creator app can show
+the real renderer before publishing. The token comes from `POST /surprises/:id/preview` (owner only) and is
+scoped to that surprise, valid for 10 minutes, and signed with a key derived from (not equal to) the access-token
+secret, so it cannot be used as a login and a login token cannot be used as a preview. The result is built by the
+same function that publishing uses, so a preview is exactly what would be published. The web app shows it at
+`/preview/<token>` with a "not published yet" badge and records no analytics. Any bad, expired or forged token
+is the same `404 SURPRISE_NOT_FOUND`.
+
+Only surprises that are `PUBLISHED` **and** `UNLISTED` are served at `/public/surprises/:slug`. Unpublished, deleted, `PRIVATE`,
 malformed and nonexistent slugs all return the same `404 SURPRISE_NOT_FOUND`, so the endpoint cannot be
 used to discover which slugs exist. Responses are `Cache-Control: no-store` so unpublishing and deleting
 take effect immediately, and carry `X-Robots-Tag: noindex`.
@@ -79,6 +87,7 @@ take effect immediately, and carry `X-Robots-Tag: noindex`.
 | PATCH | `/surprises/:id` | partial update; `templateId: null` clears the template |
 | DELETE | `/surprises/:id` | soft delete; the public link stops working immediately |
 | POST | `/surprises/:id/publish` | freezes a snapshot, assigns a slug; calling again republishes the same URL |
+| POST | `/surprises/:id/preview` | `{ token, expiresIn }` for the draft preview (needs a template; 30/min) |
 | POST | `/surprises/:id/unpublish` | back to draft, slug kept |
 
 Body fields: `recipientName` (required on create, ≤ 80), `recipientNickname`, `relationship`,
