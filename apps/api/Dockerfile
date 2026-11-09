@@ -4,7 +4,7 @@
 # The repo layout is kept inside the image (/app/apps/api, /app/templates) so the scripts'
 # relative paths work unchanged.
 
-FROM node:24-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 # Prisma's engines need OpenSSL; slim images do not ship it.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
