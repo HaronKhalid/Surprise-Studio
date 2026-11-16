@@ -27,6 +27,32 @@ flutter run --dart-define=API_URL=https://api.example.com/api/v1 --dart-define=S
 Debug builds may use plain `http` for local development. **Release builds cannot**: Android blocks cleartext
 traffic, so a release build only works against `https` URLs.
 
+## Get an APK on your phone (GitHub Actions)
+
+`.github/workflows/android-build.yml` builds an installable APK without any Android tooling on your machine.
+
+1. GitHub: **Actions → Android build → Run workflow**. Choose the build type and give it the server addresses.
+2. When it finishes, open the run, download the artifact from **Artifacts** (it is a zip), copy the `.apk` to your
+   phone and open it. Allow "Install unknown apps" when Android asks. Each build installs over the last one.
+
+The app talks to a server over the network, and `localhost` means the phone itself, so the URLs are required:
+
+- **`debug` build** allows plain `http`, for a server running on your own computer. Use your computer's LAN
+  address (find it with `ipconfig`), with the phone on the same Wi-Fi and Windows Firewall allowing ports 4000,
+  3000 and 9000. Run the API with `STORAGE_PUBLIC_ENDPOINT=http://<LAN-IP>:9000` and
+  `STORAGE_PUBLIC_URL=http://<LAN-IP>:9000/surprise-assets` so photo links also work from the phone.
+  Example inputs: `http://192.168.1.20:4000/api/v1` and `http://192.168.1.20:3000`.
+- **`release` build** only works with `https` URLs (Android blocks plain http). Use it once the backend is deployed
+  or exposed through an https tunnel.
+
+To avoid retyping, set repository variables `API_URL` and `SITE_URL` (Settings → Secrets and variables → Actions →
+Variables); the workflow falls back to them. Pushing a tag such as `mobile-v0.1.0` builds a release APK and attaches
+it to a GitHub Release.
+
+Optional Play-ready signing: add secrets `ANDROID_KEYSTORE_BASE64` (`base64 -w0 upload-keystore.jks`),
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Without them a release APK is signed with the
+debug key: fine for testing on your own phone, rejected by Google Play.
+
 ## Tests
 
 ```

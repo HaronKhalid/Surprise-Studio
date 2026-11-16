@@ -1,0 +1,185 @@
+name: Android build
+
+# Builds an installable APK you can download from the run page and sideload onto a phone.
+#
+#   Actions -> "Android build" -> Run workflow
+#
+# Pushing a tag like  mobile-v0.1.0  also builds a release APK and attaches it to a GitHub Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'debug = allows plain http (for a dev server on your network); release = https only'
+        type: choice
+        options: [debug, release]
+        default: debug
+      api_url:
+        description: 'API base URL the app talks to, e.g. http://192.168.1.20:4000/api/v1 or https://api.example.com/api/v1 (falls back to the repository variable API_URL)'
+        type: string
+        required: false
+      site_url:
+        description: 'Web app URL used for share links and draft preview (falls back to the repository variable SITE_URL)'
+        type: string
+        required: false
+  push:
+    tags: ['mobile-v*']
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # only used to attach the APK to a release on tag pushes
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve build settings
+        id: cfg
+        # Inputs go through env, never straight into the script, so they cannot inject commands.
+        env:
+          INPUT_TYPE: ${{ inputs.build_type }}
+          INPUT_API: ${{ inputs.api_url }}
+          INPUT_SITE: ${{ inputs.site_url }}
+          VAR_API: ${{ vars.API_URL }}
+          VAR_SITE: ${{ vars.SITE_URL }}
+        run: |
+          TYPE="${INPUT_TYPE:-release}"          # a tag push has no inputs: that is a release build
+          API="${INPUT_API:-$VAR_API}"
+          SITE="${INPUT_SITE:-$VAR_SITE}"
+
+          if [ -z "$API" ] || [ -z "$SITE" ]; then
+            echo "::error::API and site URLs are required. Pass them when running the workflow, or set the repository variables API_URL and SITE_URL (Settings > Secrets and variables > Actions > Variables). A phone cannot reach 'localhost'."
+            exit 1
+          fi
+          case "$API$SITE" in *[[:space:]]*) echo "::error::URLs must not contain spaces"; exit 1;; esac
+          if [ "$TYPE" = "release" ]; then
+            case "$API" in https://*) ;; *) echo "::error::A release build only works with an https API URL (Android blocks plain http). Use build_type=debug for a local server."; exit 1;; esac
+            case "$SITE" in https://*) ;; *) echo "::error::A release build needs an https site URL."; exit 1;; esac
+          fi
+          case "$API" in http://*) echo "::warning::Plain-http API: fine for a debug build on your own network, never for real users.";; esac
+
+          echo "type=$TYPE" >> "$GITHUB_OUTPUT"
+          echo "api=$API"   >> "$GITHUB_OUTPUT"
+          echo "site=$SITE" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9 # keep in step with ci.yml
+          cache: true
+
+      - run: flutter pub get
+
+      # Never ship an APK from code that fails its own checks.
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Set up release signing (only if the secrets exist)
+        if: steps.cfg.outputs.type == 'release'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: this release APK is signed with the DEBUG key. It installs fine for testing but Google Play will reject it."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/upload-keystore.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+      - name: Build APK
+        env:
+          TYPE: ${{ steps.cfg.outputs.type }}
+          API: ${{ steps.cfg.outputs.api }}
+          SITE: ${{ steps.cfg.outputs.site }}
+        # The run number is the Android versionCode, so every build is newer than the last one
+        # and installs over the previous one without uninstalling.
+        run: |
+          flutter build apk --"$TYPE" \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=API_URL="$API" \
+            --dart-define=SITE_URL="$SITE"
+
+      - name: Name and checksum the APK
+        id: apk
+        env:
+          TYPE: ${{ steps.cfg.outputs.type }}
+        run: |
+          NAME="surprise-studio-${TYPE}-build${{ github.run_number }}.apk"
+          cp "build/app/outputs/flutter-apk/app-${TYPE}.apk" "$NAME"
+          sha256sum "$NAME" | tee "$NAME.sha256"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "path=apps/mobile/$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties "$RUNNER_TEMP/upload-keystore.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.path }}.sha256
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Summary
+        env:
+          NAME: ${{ steps.apk.outputs.name }}
+          TYPE: ${{ steps.cfg.outputs.type }}
+          API: ${{ steps.cfg.outputs.api }}
+          SITE: ${{ steps.cfg.outputs.site }}
+        run: |
+          {
+            echo "### Android APK built"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| File | \`$NAME\` |"
+            echo "| Type | $TYPE |"
+            echo "| API | \`$API\` |"
+            echo "| Site | \`$SITE\` |"
+            echo ""
+            echo "**Install on your phone**"
+            echo "1. Scroll to **Artifacts** below and download \`$NAME\` (it arrives as a zip; unzip it)."
+            echo "2. Copy the \`.apk\` to the phone (or download it there) and open it."
+            echo "3. Allow *Install unknown apps* for your browser or file manager when Android asks."
+            echo ""
+            echo "The server at the API address must be reachable from the phone."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attach to a GitHub Release (tag pushes)
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.apk.outputs.name }}
+        run: |
+          gh release create "${{ github.ref_name }}" "$NAME" "$NAME.sha256" \
+            --repo "${{ github.repository }}" \
+            --title "Android ${{ github.ref_name }}" \
+            --notes "Android APK, build ${{ github.run_number }}. Sideload it onto a phone to test."
